@@ -1,0 +1,21 @@
+{
+  "name": "iot-hyperledger",
+  "version": "1.0.0",
+  "description": "Node.js application for interacting with Hyperledger Fabric from IoT devices",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "fabric-ca-client": "^2.2.18",
+    "fabric-network": "^2.2.18",
+    "mqtt": "^5.0.0"
+  },
+  "author": "Osama Ishmilh",
+  "license": "ISC"
+}
+
+
