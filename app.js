@@ -21,6 +21,8 @@ const client = mqtt.connect('mqtt://localhost', options);
 const app = express();
 const port = 3000;
 
+app.use(cors());
+
 app.get('/getAllMedsData', async (req, res) => {
   try {
     const result = await queryAllMedsData();
