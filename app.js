@@ -9,7 +9,7 @@ const mqtt = require('mqtt');
 const express = require('express');
 
 const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
-const identityLabel = 'admin@org1.example.com';
+const identityLabel = 'user1@org1.example.com';
 
 // Define the TLS options
 // const tlsOptions = {
@@ -105,8 +105,8 @@ async function main() {
         return;
     }
 
-    const enrollmentID = 'admin';
-    const enrollmentSecret = 'adminpw';
+    const enrollmentID = 'user1';
+    const enrollmentSecret = 'user1pw';
 
     let enrollmentRequest = {
         enrollmentID: enrollmentID,
