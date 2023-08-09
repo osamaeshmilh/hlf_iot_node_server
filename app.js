@@ -14,8 +14,8 @@ const identityLabel = 'admin@org1.example.com';
 // Define the TLS options
 const tlsOptions = {
   ca: [fs.readFileSync('/home/osama/ca.crt')],
-  key: fs.readFileSync('/home/osama/client.key'),
-  cert: fs.readFileSync('/home/osama/client.crt')
+  key: fs.readFileSync('/home/osama/server.key'), 
+  cert: fs.readFileSync('/home/osama/server.crt') 
 };
 
 const options = {
