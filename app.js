@@ -11,12 +11,20 @@ const express = require('express');
 const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
 const identityLabel = 'admin@org1.example.com';
 
+// Define the TLS options
+const tlsOptions = {
+  ca: [fs.readFileSync('/home/osama/ca.crt')],
+  key: fs.readFileSync('/home/osama/client.key'),
+  cert: fs.readFileSync('/home/osama/client.crt')
+};
+
 const options = {
   username: 'iot',
   password: 'iot123456',
+  ...tlsOptions, 
 };
 
-const client = mqtt.connect('mqtt://localhost', options);
+const client = mqtt.connect('mqtts://localhost', options); 
 
 const app = express();
 const port = 3000;
