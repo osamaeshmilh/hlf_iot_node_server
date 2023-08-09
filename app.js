@@ -12,16 +12,16 @@ const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com
 const identityLabel = 'admin@org1.example.com';
 
 // Define the TLS options
-const tlsOptions = {
-  ca: [fs.readFileSync('/home/osama/ca.crt')],
-  key: fs.readFileSync('/home/osama/server.key'), 
-  cert: fs.readFileSync('/home/osama/server.crt') 
-};
+// const tlsOptions = {
+//   ca: [fs.readFileSync('/home/osama/ca.crt')],
+//   key: fs.readFileSync('/home/osama/server.key'), 
+//   cert: fs.readFileSync('/home/osama/server.crt') 
+// };
 
 const options = {
   username: 'iot',
   password: 'iot123456',
-  ...tlsOptions, 
+  // ...tlsOptions, 
 };
 
 const client = mqtt.connect('mqtt://localhost', options); 
