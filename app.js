@@ -24,7 +24,7 @@ const options = {
   ...tlsOptions, 
 };
 
-const client = mqtt.connect('mqtts://localhost', options); 
+const client = mqtt.connect('mqtt://localhost', options); 
 
 const app = express();
 const port = 3000;
