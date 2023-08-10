@@ -7,6 +7,18 @@ const FabricCAServices = require('fabric-ca-client');
 const { Wallets, Gateway } = require('fabric-network');
 const mqtt = require('mqtt');
 const express = require('express');
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+
+const csvWriter = createCsvWriter({
+    path: 'transaction_throughput.csv',
+    header: [
+        { id: 'transactionId', title: 'TRANSACTION_ID' },
+        { id: 'startTime', title: 'START_TIME' },
+        { id: 'endTime', title: 'END_TIME' },
+        { id: 'duration', title: 'DURATION_MS' },
+        { id: 'result', title: 'RESULT' }
+    ]
+});
 
 const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
 const identityLabel = 'user1@org1.example.com';
@@ -21,7 +33,7 @@ const identityLabel = 'user1@org1.example.com';
 const options = {
   username: 'iot',
   password: 'iot123456',
-  // ...tlsOptions, 
+  // ...tlsOptions,
 };
 
 const client = mqtt.connect('mqtt://localhost', options); 
@@ -133,36 +145,62 @@ async function main() {
 }
 
 async function invokeTransaction(args) {
-  const gateway = new Gateway();
+    const gateway = new Gateway();
 
-  try {
-    console.log('Starting the transaction process with arguments:', args);
-    const wallet = await Wallets.newFileSystemWallet('./wallet');
-    const orgName = identityLabel.split('@')[1];
-    const orgNameWithoutDomain = orgName.split('.')[0];
-    const connectionProfilePath = path.join(testNetworkRoot, 'organizations/peerOrganizations', orgName, `/connection-${orgNameWithoutDomain}.json`);
-    const connectionProfile = JSON.parse(fs.readFileSync(connectionProfilePath, 'utf8'));
+    try {
+        console.log('Starting the transaction process with arguments:', args);
 
-    const connectionOptions = {
-        identity: identityLabel,
-        wallet: wallet,
-        discovery: { enabled: true, asLocalhost: true }
-    };
+        const wallet = await Wallets.newFileSystemWallet('./wallet');
+        const orgName = identityLabel.split('@')[1];
+        const orgNameWithoutDomain = orgName.split('.')[0];
+        const connectionProfilePath = path.join(testNetworkRoot, 'organizations/peerOrganizations', orgName, `/connection-${orgNameWithoutDomain}.json`);
+        const connectionProfile = JSON.parse(fs.readFileSync(connectionProfilePath, 'utf8'));
 
-    await gateway.connect(connectionProfile, connectionOptions);
+        const connectionOptions = {
+            identity: identityLabel,
+            wallet: wallet,
+            discovery: { enabled: true, asLocalhost: true }
+        };
 
-    const network = await gateway.getNetwork('iotchannel1');
-    const contract = network.getContract('iot');
+        await gateway.connect(connectionProfile, connectionOptions);
 
-    const response = await contract.submitTransaction('CreateMedsData', ...args);
-    console.log(`Transaction submitted successfully: ${response}`);
+        const network = await gateway.getNetwork('iotchannel1');
+        const contract = network.getContract('iot');
 
-  } catch (error) {
-    console.error('Error during the transaction process:', error);
-  } finally {
-    console.log('Disconnecting from the gateway...');
-    gateway.disconnect();
-  }
+        // Mark the start time of the transaction
+        const startTime = new Date().toISOString();
+
+        const response = await contract.submitTransaction('CreateMedsData', ...args);
+
+        // Mark the end time of the transaction
+        const endTime = new Date().toISOString();
+
+        console.log(`Transaction submitted successfully: ${response}`);
+
+        // Calculate duration
+        const durationMs = new Date(endTime) - new Date(startTime);
+
+        // Record the transaction details for throughput measurement
+        const record = {
+            transactionId: response.toString(), // Assuming transaction ID is in the response
+            startTime: startTime,
+            endTime: endTime,
+            duration: durationMs,
+            result: response.toString()
+        };
+
+        // Write the record to CSV
+        csvWriter.writeRecords([record])
+            .then(() => {
+                console.log('Record written to CSV');
+            });
+
+    } catch (error) {
+        console.error('Error during the transaction process:', error);
+    } finally {
+        console.log('Disconnecting from the gateway...');
+        gateway.disconnect();
+    }
 }
 
 async function queryAllMedsData() {
