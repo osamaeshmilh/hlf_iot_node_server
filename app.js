@@ -70,38 +70,41 @@ async function initializeApp() {
             console.error('Error during the transaction process:', error);
         }
     });
+
+
+
+    async function init() {
+        if (!contract) {
+            const gateway = new Gateway();
+            await gateway.connect(connectionProfile, connectionOptions);
+            const network = await gateway.getNetwork('iotchannel1');
+            contract = network.getContract('iot');
+        }
+    }
+
+    async function invokeTransaction(args) {
+        try {
+            const response = await contract.submitTransaction('CreateMedsData', ...args);
+            console.log(`Transaction submitted successfully: ${response}`);
+        } catch (error) {
+            console.error('Error during the transaction process:', error);
+        }
+    }
+
+    async function queryAllMedsData() {
+        try {
+            const result = await contract.evaluateTransaction('GetAllMedsData');
+            console.log(`Query result: ${result.toString()}`);
+            return result.toString();
+        } catch (error) {
+            console.error(`Error querying chaincode: ${error}`);
+            throw error;
+        }
+    }
+
 }
 
 initializeApp().catch(error => {
     console.error('Error initializing app:', error);
 });
 
-
-async function init() {
-    if (!contract) {
-        const gateway = new Gateway();
-        await gateway.connect(connectionProfile, connectionOptions);
-        const network = await gateway.getNetwork('iotchannel1');
-        contract = network.getContract('iot');
-    }
-}
-
-async function invokeTransaction(args) {
-    try {
-        const response = await contract.submitTransaction('CreateMedsData', ...args);
-        console.log(`Transaction submitted successfully: ${response}`);
-    } catch (error) {
-        console.error('Error during the transaction process:', error);
-    }
-}
-
-async function queryAllMedsData() {
-    try {
-        const result = await contract.evaluateTransaction('GetAllMedsData');
-        console.log(`Query result: ${result.toString()}`);
-        return result.toString();
-    } catch (error) {
-        console.error(`Error querying chaincode: ${error}`);
-        throw error;
-    }
-}
