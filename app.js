@@ -160,8 +160,8 @@ async function invokeTransaction(args) {
   } catch (error) {
     console.error('Error during the transaction process:', error);
   } finally {
-    console.log('Disconnecting from the gateway...');
-    gateway.disconnect();
+    // console.log('Disconnecting from the gateway...');
+    // gateway.disconnect();
   }
 }
 
