@@ -46,6 +46,7 @@ async function initializeApp() {
     let successfulTransactions = 0;
     let failedTransactions = 0;
     let tpsList = [];
+    let transactionsThisSecond = 0;
 
 // Variables to track latency
     let latencyList = [];
@@ -133,6 +134,8 @@ async function initializeApp() {
 
     async function invokeTransaction(args) {
         try {
+            transactionsThisSecond++;
+
             const startTime = new Date().toISOString();
 
             const response = await contract.submitTransaction('CreateMedsData', ...args);
@@ -206,7 +209,32 @@ async function initializeApp() {
         }
     }
 
-    setInterval(resetThroughputVariables, 1000);
+    setInterval(() => {
+        const tps = transactionsThisSecond; // Number of transactions this past second is the TPS
+
+        tpsList.push(tps);
+        totalTransactions += transactionsThisSecond;
+
+        // Create throughput record
+        const throughputRecord = {
+            timestamp: new Date().toISOString(),
+            totalTransactions: totalTransactions,
+            successfulTransactions: successfulTransactions,
+            failedTransactions: failedTransactions,
+            tps: tps,
+            peakTps: Math.max(...tpsList),
+            avgTps: tpsList.reduce((acc, curr) => acc + curr, 0) / tpsList.length,
+            duration: 1 // 1 second
+        };
+
+        // Write the throughput record to CSV
+        throughputCsvWriter.writeRecords([throughputRecord])
+            .then(() => {
+                console.log('Throughput record written to CSV');
+            });
+
+        transactionsThisSecond = 0; // Reset for the next second
+    }, 1000);
 }
 
 
