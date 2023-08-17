@@ -124,6 +124,13 @@ async function initializeApp() {
         }
     }
 
+    function resetThroughputVariables() {
+        totalTransactions = 0;
+        successfulTransactions = 0;
+        failedTransactions = 0;
+        tpsList = [];
+    }
+
     async function invokeTransaction(args) {
         try {
             const startTime = new Date().toISOString();
@@ -198,6 +205,8 @@ async function initializeApp() {
             throw error;
         }
     }
+
+    setInterval(resetThroughputVariables, 1000);
 }
 
 
