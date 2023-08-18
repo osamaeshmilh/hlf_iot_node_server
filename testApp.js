@@ -3,54 +3,12 @@
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const FabricCAServices = require('fabric-ca-client');
 const { Wallets, Gateway } = require('fabric-network');
 const mqtt = require('mqtt');
 const express = require('express');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
-
 async function initializeApp() {
-    // Fields for throughput
-    const throughputCsvWriter = createCsvWriter({
-        path: 'transaction_throughput.csv',
-        header: [
-            { id: 'timestamp', title: 'TIMESTAMP' },
-            { id: 'totalTransactions', title: 'TOTAL_TRANSACTIONS' },
-            { id: 'successfulTransactions', title: 'SUCCESSFUL_TRANSACTIONS' },
-            { id: 'failedTransactions', title: 'FAILED_TRANSACTIONS' },
-            { id: 'tps', title: 'TPS' },
-            { id: 'peakTps', title: 'PEAK_TPS' },
-            { id: 'avgTps', title: 'AVERAGE_TPS' },
-            { id: 'duration', title: 'DURATION' }
-        ]
-    });
-
-// Fields for latency
-    const latencyCsvWriter = createCsvWriter({
-        path: 'transaction_latency.csv',
-        header: [
-            { id: 'timestamp', title: 'TIMESTAMP' },
-            { id: 'transactionId', title: 'TRANSACTION_ID' },
-            { id: 'startTime', title: 'START_TIME' },
-            { id: 'endTime', title: 'END_TIME' },
-            { id: 'latency', title: 'LATENCY_MS' },
-            { id: 'avgLatency', title: 'AVERAGE_LATENCY_MS' },
-            { id: 'peakLatency', title: 'PEAK_LATENCY_MS' },
-            { id: 'lowestLatency', title: 'LOWEST_LATENCY_MS' }
-        ]
-    });
-
-// Variables to track throughput
-    let totalTransactions = 0;
-    let successfulTransactions = 0;
-    let failedTransactions = 0;
-    let tpsList = [];
-    let transactionsThisSecond = 0;
-
-// Variables to track latency
-    let latencyList = [];
-
     const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
     const identityLabel = 'user1@org1.example.com';
     const orgName = identityLabel.split('@')[1];
@@ -116,6 +74,40 @@ async function initializeApp() {
         }
     });
 
+    // Throughput tracking
+    const throughputCsvWriter = createCsvWriter({
+        path: 'transaction_throughput.csv',
+        header: [
+            { id: 'timestamp', title: 'TIMESTAMP' },
+            { id: 'transactionsThisSecond', title: 'TRANSACTIONS_THIS_SECOND' },
+            { id: 'totalTransactions', title: 'TOTAL_TRANSACTIONS' }
+        ]
+    });
+
+    let totalTransactions = 0;
+    let transactionsThisSecond = 0;
+
+    setInterval(() => {
+        // Prepare the record for this second
+        const record = {
+            timestamp: new Date().toISOString(),
+            transactionsThisSecond: transactionsThisSecond,
+            totalTransactions: totalTransactions
+        };
+
+        // Write the record to CSV
+        throughputCsvWriter.writeRecords([record])
+            .then(() => {
+                console.log('Throughput record written to CSV');
+            })
+            .catch(error => {
+                console.error('Error writing to CSV:', error);
+            });
+
+        // Reset the count for the next second
+        transactionsThisSecond = 0;
+    }, 1000);
+
     async function init() {
         if (!contract) {
             const gateway = new Gateway();
@@ -125,73 +117,14 @@ async function initializeApp() {
         }
     }
 
-    function resetThroughputVariables() {
-        totalTransactions = 0;
-        successfulTransactions = 0;
-        failedTransactions = 0;
-        tpsList = [];
-    }
-
     async function invokeTransaction(args) {
         try {
-            transactionsThisSecond++;
-
-            const startTime = new Date().toISOString();
-
             const response = await contract.submitTransaction('CreateMedsData', ...args);
-
-            // Mark the end time of the transaction
-            const endTime = new Date().toISOString();
-
             console.log(`Transaction submitted successfully: ${response}`);
 
-            // Calculate latency
-            const latencyMs = new Date(endTime) - new Date(startTime);
-            latencyList.push(latencyMs);
-
-            // Update throughput variables
+            // Increment the counters for tracking
             totalTransactions++;
-            if (response) {
-                successfulTransactions++;
-            } else {
-                failedTransactions++;
-            }
-            const tps = totalTransactions / 1; // Assuming a 1-second interval for demonstration
-            tpsList.push(tps);
-
-            // Create throughput and latency records
-            const throughputRecord = {
-                timestamp: new Date().toISOString(),
-                totalTransactions: totalTransactions,
-                successfulTransactions: successfulTransactions,
-                failedTransactions: failedTransactions,
-                tps: tps,
-                peakTps: Math.max(...tpsList),
-                avgTps: tpsList.reduce((acc, curr) => acc + curr, 0) / tpsList.length,
-                duration: 1 // Assuming a 1-second interval
-            };
-
-            const latencyRecord = {
-                timestamp: new Date().toISOString(),
-                transactionId: response ? response.toString() : "FAILED",
-                startTime: startTime,
-                endTime: endTime,
-                latency: latencyMs,
-                avgLatency: latencyList.reduce((acc, curr) => acc + curr, 0) / latencyList.length,
-                peakLatency: Math.max(...latencyList),
-                lowestLatency: Math.min(...latencyList)
-            };
-
-            // Write the records to CSV
-            throughputCsvWriter.writeRecords([throughputRecord])
-                .then(() => {
-                    console.log('Throughput record written to CSV');
-                });
-
-            latencyCsvWriter.writeRecords([latencyRecord])
-                .then(() => {
-                    console.log('Latency record written to CSV');
-                });
+            transactionsThisSecond++;
 
         } catch (error) {
             console.error('Error during the transaction process:', error);
@@ -209,34 +142,7 @@ async function initializeApp() {
         }
     }
 
-    setInterval(() => {
-        const tps = transactionsThisSecond; // Number of transactions this past second is the TPS
-
-        tpsList.push(tps);
-        totalTransactions += transactionsThisSecond;
-
-        // Create throughput record
-        const throughputRecord = {
-            timestamp: new Date().toISOString(),
-            totalTransactions: totalTransactions,
-            successfulTransactions: successfulTransactions,
-            failedTransactions: failedTransactions,
-            tps: tps,
-            peakTps: Math.max(...tpsList),
-            avgTps: tpsList.reduce((acc, curr) => acc + curr, 0) / tpsList.length,
-            duration: 1 // 1 second
-        };
-
-        // Write the throughput record to CSV
-        throughputCsvWriter.writeRecords([throughputRecord])
-            .then(() => {
-                console.log('Throughput record written to CSV');
-            });
-
-        transactionsThisSecond = 0; // Reset for the next second
-    }, 1000);
 }
-
 
 initializeApp().catch(error => {
     console.error('Error initializing app:', error);
