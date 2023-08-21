@@ -14,6 +14,13 @@ const FabricCAServices = require('fabric-ca-client');
 // const pool = workerpool.pool(__dirname + '/worker.js');
 
 async function initializeApp() {
+    const options = {
+        username: 'iot',
+        password: 'iot123456',
+    };
+
+    const client = mqtt.connect('mqtt://localhost', options);
+
     const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
     const identityLabel = 'user1@org1.example.com';
     const orgName = identityLabel.split('@')[1];
@@ -21,12 +28,7 @@ async function initializeApp() {
     const connectionProfilePath = path.join(testNetworkRoot, 'organizations/peerOrganizations', orgName, `/connection-${orgNameWithoutDomain}.json`);
     const connectionProfile = JSON.parse(fs.readFileSync(connectionProfilePath, 'utf8'));
 
-    const options = {
-        username: 'iot',
-        password: 'iot123456',
-    };
 
-    const client = mqtt.connect('mqtt://localhost', options);
     const app = express();
     const port = 3000;
     const connectionOptions = {
