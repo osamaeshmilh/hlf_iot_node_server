@@ -7,14 +7,16 @@ const { Wallets, Gateway } = require('fabric-network');
 const mqtt = require('mqtt');
 const express = require('express');
 
+const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
+const identityLabel = 'user1@org1.example.com';
+const orgName = identityLabel.split('@')[1];
+const orgNameWithoutDomain = orgName.split('.')[0];
+const connectionProfilePath = path.join(testNetworkRoot, 'organizations/peerOrganizations', orgName, `/connection-${orgNameWithoutDomain}.json`);
+const connectionProfile = JSON.parse(fs.readFileSync(connectionProfilePath, 'utf8'));
+
+
 
 async function initializeApp() {
-    const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
-    const identityLabel = 'user1@org1.example.com';
-    const orgName = identityLabel.split('@')[1];
-    const orgNameWithoutDomain = orgName.split('.')[0];
-    const connectionProfilePath = path.join(testNetworkRoot, 'organizations/peerOrganizations', orgName, `/connection-${orgNameWithoutDomain}.json`);
-    const connectionProfile = JSON.parse(fs.readFileSync(connectionProfilePath, 'utf8'));
 
     const options = {
         username: 'iot',
@@ -29,6 +31,8 @@ async function initializeApp() {
         wallet: await Wallets.newFileSystemWallet('./wallet'),
         discovery: { enabled: true, asLocalhost: true }
     };
+
+    checkAndEnrollUser();
 
     let contract = null;
 
@@ -102,6 +106,20 @@ async function initializeApp() {
         }
     }
 
+}
+
+async function checkAndEnrollUser() {
+    const wallet = await Wallets.newFileSystemWallet('./wallet');
+    let identity = await wallet.get(identityLabel);
+    if (!identity) {
+        console.log(`An identity for the user ${identityLabel} does not exist in the wallet`);
+        console.log('Enrolling user and importing identity into the wallet...');
+
+        // Add your enrollment logic here...
+
+        // After successful enrollment, save the identity to the wallet:
+        await wallet.put(identityLabel, identity);
+    }
 }
 
 initializeApp().catch(error => {
