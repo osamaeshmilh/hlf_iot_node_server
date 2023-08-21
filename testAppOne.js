@@ -66,36 +66,13 @@ async function initializeApp() {
         const args = [data.batchNo, data.warehouseNo, data.iotId, data.temperatureSensorId, data.humiditySensorId, data.timestamp, data.temperature.toString(), data.humidity.toString()];
         console.log('Starting the transaction process with arguments:', args);
 
-        const startTime = new Date(); // Record start time
-
         // Submit the transaction with the arguments
         try {
             await invokeTransaction(args);
-
-            const endTime = new Date(); // Record end time after transaction completion
-
-            const latencyMs = endTime.getTime() - startTime.getTime(); // Calculate latency
-
-            // Prepare the latency record
-            const latencyRecord = {
-                timestamp: new Date().toISOString(),
-                humidity: data.humidity,
-                temperature: data.temperature,
-                startTime: startTime.toISOString(),
-                endTime: endTime.toISOString(),
-                latencyMs: latencyMs,
-                tps: transactionsThisSecond,  // Not truly "per second" here. Consider re-computation if needed.
-                totalTransactions: totalTransactions
-            };
-
-            // Write the latency record to the CSV
-            await latencyCsvWriter.writeRecords([latencyRecord]);
-
         } catch (error) {
             console.error('Error during the transaction process:', error);
         }
     });
-
 
     // Throughput tracking
     const throughputCsvWriter = createCsvWriter({
