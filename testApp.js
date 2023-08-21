@@ -78,18 +78,6 @@ async function initializeApp() {
 
     client.on('message', async function (topic, message) {
 
-        const latencyMsRounded = Math.round(latencyMs / 100) * 100; // Round to the nearest hundred
-
-        // Add the new latency value to the queue
-        latencyQueue.push(latencyMsRounded);
-
-        // If the queue size exceeds 5, remove the oldest value
-        if (latencyQueue.length > 5) {
-            latencyQueue.shift();
-        }
-
-        // Compute the moving average of the latency values in the queue
-        const movingAverageLatency = Math.round(latencyQueue.reduce((a, b) => a + b) / latencyQueue.length);
 
         // Parse the message into a JSON object
         let data = JSON.parse(message.toString());
@@ -105,6 +93,21 @@ async function initializeApp() {
             const endTime = new Date(); // Record end time after transaction completion
 
             const latencyMs = endTime.getTime() - startTime.getTime(); // Calculate latency
+
+
+            const latencyMsRounded = Math.round(latencyMs / 100) * 100; // Round to the nearest hundred
+
+            // Add the new latency value to the queue
+            latencyQueue.push(latencyMsRounded);
+
+            // If the queue size exceeds 5, remove the oldest value
+            if (latencyQueue.length > 5) {
+                latencyQueue.shift();
+            }
+
+            // Compute the moving average of the latency values in the queue
+            const movingAverageLatency = Math.round(latencyQueue.reduce((a, b) => a + b) / latencyQueue.length);
+
 
             // Prepare the latency record
             const latencyRecord = {
