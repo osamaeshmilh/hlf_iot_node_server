@@ -31,13 +31,13 @@ async function initializeApp() {
 
     const app = express();
     const port = 3000;
-    const connectionOptions = {
-        identity: identityLabel,
-        wallet: await Wallets.newFileSystemWallet('./wallet'),
-        discovery: { enabled: true, asLocalhost: true }
-    };
-
-    await checkAndEnrollUser(identityLabel, connectionProfile, orgName, orgNameWithoutDomain);
+    // const connectionOptions = {
+    //     identity: identityLabel,
+    //     wallet: await Wallets.newFileSystemWallet('./wallet'),
+    //     discovery: { enabled: true, asLocalhost: true }
+    // };
+    //
+    // await checkAndEnrollUser(identityLabel, connectionProfile, orgName, orgNameWithoutDomain);
 
     let contract = null;
 
