@@ -60,6 +60,8 @@ async function initializeApp() {
         });
     });
 
+    const latencyQueue = [];
+
     const latencyCsvWriter = createCsvWriter({
         path: 'transaction_latency.csv',
         header: [
@@ -75,6 +77,20 @@ async function initializeApp() {
     });
 
     client.on('message', async function (topic, message) {
+
+        const latencyMsRounded = Math.round(latencyMs / 100) * 100; // Round to the nearest hundred
+
+        // Add the new latency value to the queue
+        latencyQueue.push(latencyMsRounded);
+
+        // If the queue size exceeds 5, remove the oldest value
+        if (latencyQueue.length > 5) {
+            latencyQueue.shift();
+        }
+
+        // Compute the moving average of the latency values in the queue
+        const movingAverageLatency = Math.round(latencyQueue.reduce((a, b) => a + b) / latencyQueue.length);
+
         // Parse the message into a JSON object
         let data = JSON.parse(message.toString());
         const args = [data.batchNo, data.warehouseNo, data.iotId, data.temperatureSensorId, data.humiditySensorId, data.timestamp, data.temperature.toString(), data.humidity.toString()];
@@ -92,13 +108,13 @@ async function initializeApp() {
 
             // Prepare the latency record
             const latencyRecord = {
-                timestamp: new Date().toISOString(),
+                timestamp: new Date().toISOString().split('T')[1].split('.')[0], // Format to HH:MM:SS
                 humidity: data.humidity,
                 temperature: data.temperature,
                 startTime: startTime.toISOString(),
                 endTime: endTime.toISOString(),
-                latencyMs: latencyMs,
-                tps: tps,  // Use the computed TPS
+                latencyMs: movingAverageLatency, // Use the moving average latency
+                tps: tps,
                 totalTransactions: totalTransactions
             };
 
@@ -132,7 +148,7 @@ async function initializeApp() {
 
         // Prepare the record for this second
         const record = {
-            timestamp: new Date().toISOString(),
+            timestamp: new Date().toISOString().split('T')[1].split('.')[0], // Format to HH:MM:SS
             transactionsThisSecond: transactionsThisSecond,
             totalTransactions: totalTransactions
         };
