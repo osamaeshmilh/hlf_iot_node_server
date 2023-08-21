@@ -31,13 +31,17 @@ async function initializeApp() {
 
     const app = express();
     const port = 3000;
-    // const connectionOptions = {
-    //     identity: identityLabel,
-    //     wallet: await Wallets.newFileSystemWallet('./wallet'),
-    //     discovery: { enabled: true, asLocalhost: true }
-    // };
-    //
-    // await checkAndEnrollUser(identityLabel, connectionProfile, orgName, orgNameWithoutDomain);
+    try {
+        const connectionOptions = {
+            identity: identityLabel,
+            wallet: await Wallets.newFileSystemWallet('./wallet'),
+            discovery: { enabled: true, asLocalhost: true }
+        };
+
+        await checkAndEnrollUser(identityLabel, connectionProfile, orgName, orgNameWithoutDomain);
+    } catch (error) {
+        console.error("Error initializing Hyperledger Fabric:", error);
+    }
 
     let contract = null;
 
