@@ -7,6 +7,8 @@ const { Wallets, Gateway } = require('fabric-network');
 const mqtt = require('mqtt');
 const express = require('express');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const FabricCAServices = require('fabric-ca-client');
+
 // const workerpool = require('workerpool');
 //
 // const pool = workerpool.pool(__dirname + '/worker.js');
