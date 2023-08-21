@@ -159,7 +159,7 @@ async function initializeApp() {
         tps = transactionsThisSecond;  // Since the duration is 1 second, TPS is equal to transactionsThisSecond
 
         osutils.cpuUsage(function(v){
-            cpuLoad = (v * 100).toFixed(2)
+            cpuLoad = Math.round(v * 100)
             // Write the latency record to the CSV
         });
 
