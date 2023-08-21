@@ -69,6 +69,10 @@ async function initializeApp() {
         });
     });
 
+    client.on('error', function(error) {
+        console.error('MQTT Error:', error);
+    });
+
     const latencyQueue = [];
 
     const latencyCsvWriter = createCsvWriter({
