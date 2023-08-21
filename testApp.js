@@ -60,6 +60,20 @@ async function initializeApp() {
         });
     });
 
+    const latencyCsvWriter = createCsvWriter({
+        path: 'latency.csv',
+        header: [
+            { id: 'timestamp', title: 'TIMESTAMP' },
+            { id: 'humidity', title: 'HUMIDITY' },
+            { id: 'temperature', title: 'TEMPERATURE' },
+            { id: 'startTime', title: 'START_TIME' },
+            { id: 'endTime', title: 'END_TIME' },
+            { id: 'latencyMs', title: 'LATENCY_MS' },
+            { id: 'tps', title: 'TPS' },  // Transactions per second
+            { id: 'totalTransactions', title: 'TOTAL_TRANSACTIONS' }
+        ]
+    });
+
     client.on('message', async function (topic, message) {
         // Parse the message into a JSON object
         let data = JSON.parse(message.toString());
