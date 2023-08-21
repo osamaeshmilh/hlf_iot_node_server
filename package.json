@@ -14,6 +14,7 @@
     "fabric-ca-client": "^2.2.18",
     "fabric-network": "^2.2.18",
     "mqtt": "^5.0.0",
+    "os-utils": "^0.0.14",
     "workerpool": "^6.4.2"
   },
   "author": "Osama Ishmilh",

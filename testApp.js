@@ -7,6 +7,7 @@ const { Wallets, Gateway } = require('fabric-network');
 const mqtt = require('mqtt');
 const express = require('express');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const osutils = require('os-utils');
 
 async function initializeApp() {
     const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
@@ -64,6 +65,12 @@ async function initializeApp() {
         console.error('MQTT Error:', error);
     });
 
+
+    let totalTransactions = 0;
+    let transactionsThisSecond = 0;
+    let tps = 0;  // New variable to store the computed TPS
+    let cpuLoad = 0;  // New variable to store the computed TPS
+
     const latencyQueue = [];
 
     const latencyCsvWriter = createCsvWriter({
@@ -76,7 +83,8 @@ async function initializeApp() {
             { id: 'endTime', title: 'END_TIME' },
             { id: 'latencyMs', title: 'LATENCY_MS' },
             { id: 'tps', title: 'TPS' },  // Transactions per second
-            { id: 'totalTransactions', title: 'TOTAL_TRANSACTIONS' }
+            { id: 'totalTransactions', title: 'TOTAL_TRANSACTIONS' },
+            { id: 'cpuLoad', title: 'CPU_LOAD' }
         ]
     });
 
@@ -122,7 +130,8 @@ async function initializeApp() {
                 endTime: endTime.toISOString(),
                 latencyMs: movingAverageLatency, // Use the moving average latency
                 tps: tps,
-                totalTransactions: totalTransactions
+                totalTransactions: totalTransactions,
+                cpuLoad: cpuLoad
             };
 
             // Write the latency record to the CSV
@@ -140,24 +149,26 @@ async function initializeApp() {
         header: [
             { id: 'timestamp', title: 'TIMESTAMP' },
             { id: 'transactionsThisSecond', title: 'TRANSACTIONS_THIS_SECOND' },
-            { id: 'totalTransactions', title: 'TOTAL_TRANSACTIONS' }
+            { id: 'totalTransactions', title: 'TOTAL_TRANSACTIONS' },
+            { id: 'cpuLoad', title: 'CPU_LOAD' }
         ]
     });
-
-    let totalTransactions = 0;
-    let transactionsThisSecond = 0;
-    let tps = 0;  // New variable to store the computed TPS
-
 
     setInterval(() => {
         // Compute the TPS for the current second
         tps = transactionsThisSecond;  // Since the duration is 1 second, TPS is equal to transactionsThisSecond
 
+        osutils.cpuUsage(function(v){
+            cpuLoad = (v * 100).toFixed(2)
+            // Write the latency record to the CSV
+        });
+
         // Prepare the record for this second
         const record = {
             timestamp: new Date().toISOString().split('T')[1].split('.')[0], // Format to HH:MM:SS
             transactionsThisSecond: transactionsThisSecond,
-            totalTransactions: totalTransactions
+            totalTransactions: totalTransactions,
+            cpuLoad: cpuLoad
         };
 
         // Write the record to CSV
