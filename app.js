@@ -3,65 +3,80 @@
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const FabricCAServices = require('fabric-ca-client');
 const { Wallets, Gateway } = require('fabric-network');
 const mqtt = require('mqtt');
 const express = require('express');
 
 const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
 const identityLabel = 'user1@org1.example.com';
-const orgName = identityLabel.split('@')[1];
-const orgNameWithoutDomain = orgName.split('.')[0];
-const connectionProfilePath = path.join(testNetworkRoot, 'organizations/peerOrganizations', orgName, `/connection-${orgNameWithoutDomain}.json`);
-const connectionProfile = JSON.parse(fs.readFileSync(connectionProfilePath, 'utf8'));
+
+// Define the TLS options
+// const tlsOptions = {
+//   ca: [fs.readFileSync('/home/osama/ca.crt')],
+//   key: fs.readFileSync('/home/osama/server.key'), 
+//   cert: fs.readFileSync('/home/osama/server.crt') 
+// };
 
 const options = {
-    username: 'iot',
-    password: 'iot123456',
+  username: 'iot',
+  password: 'iot123456',
+  // ...tlsOptions, 
 };
 
-const client = mqtt.connect('mqtt://localhost', options);
+const client = mqtt.connect('mqtt://localhost', options); 
+
 const app = express();
 const port = 3000;
-const connectionOptions = {
-    identity: identityLabel,
-    wallet: await Wallets.newFileSystemWallet('./wallet'),
-    discovery: { enabled: true, asLocalhost: true }
-};
-
-let contract = null;
 
 app.use(cors());
 
 app.get('/getAllMedsData', async (req, res) => {
-    try {
-        const result = await queryAllMedsData();
-        res.json(JSON.parse(result));
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('An error occurred while querying the ledger');
-    }
+  try {
+    const result = await queryAllMedsData();
+    res.json(JSON.parse(result)); // assuming result is a JSON string
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('An error occurred while querying the ledger');
+  }
 });
 
 app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running at http://localhost:${port}`);
 });
 
 client.on('connect', function () {
-    console.log('Connected to MQTT broker.');
-    client.subscribe('iot/data', async function (err) {
-        if (!err) {
-            console.log('Subscribed to iot/data topic');
-            await init();
-        } else {
-            console.error('Error subscribing to iot/data topic', err);
-        }
-    });
-});
+  console.log('Connected to MQTT broker.');
+  client.subscribe('iot/data', function (err) {
+    if (!err) {
+      console.log('Subscribed to iot/data topic');
+      main();
+    } else {
+      console.error('Error subscribing to iot/data topic', err);
+    }
+  })
+})
 
 client.on('message', async function (topic, message) {
+    // Parse the message into a JSON object
     let data = JSON.parse(message.toString());
-    const args = [data.batchNo, data.warehouseNo, data.iotId, data.temperatureSensorId, data.humiditySensorId, data.timestamp, data.temperature.toString(), data.humidity.toString()];
+
+    // Extract the values from the JSON object
+    const args = [
+      data.batchNo,
+      data.warehouseNo,
+      data.iotId,
+      data.temperatureSensorId,
+      data.humiditySensorId,
+      data.timestamp,
+      data.temperature.toString(),
+      data.humidity.toString()
+    ];
+
+    // Log the arguments
     console.log('Starting the transaction process with arguments:', args);
+
+    // Submit the transaction with the arguments
     try {
         await invokeTransaction(args);
     } catch (error) {
@@ -69,31 +84,117 @@ client.on('message', async function (topic, message) {
     }
 });
 
-async function init() {
-    if (!contract) {
-        const gateway = new Gateway();
-        await gateway.connect(connectionProfile, connectionOptions);
-        const network = await gateway.getNetwork('iotchannel1');
-        contract = network.getContract('iot');
+async function main() {
+  try {
+    const orgName = identityLabel.split('@')[1];
+    const orgNameWithoutDomain = orgName.split('.')[0];
+
+    let connectionProfile = JSON.parse(fs.readFileSync(
+        path.join(testNetworkRoot,
+            'organizations/peerOrganizations',
+            orgName,
+            `/connection-${orgNameWithoutDomain}.json`), 'utf8')
+    );
+
+    const ca = new FabricCAServices(connectionProfile['certificateAuthorities'][`ca.${orgName}`].url);
+    const wallet = await Wallets.newFileSystemWallet('./wallet');
+
+    let identity = await wallet.get(identityLabel);
+    if (identity) {
+        console.log(`An identity for the ${identityLabel} user already exists in the wallet`);
+        return;
     }
+
+    const enrollmentID = 'user1';
+    const enrollmentSecret = 'user1pw';
+
+    let enrollmentRequest = {
+        enrollmentID: enrollmentID,
+        enrollmentSecret: enrollmentSecret
+    };
+    const enrollment = await ca.enroll(enrollmentRequest);
+
+    const orgNameCapitalized = orgNameWithoutDomain.charAt(0).toUpperCase() + orgNameWithoutDomain.slice(1);
+    identity = {
+        credentials: {
+            certificate: enrollment.certificate,
+            privateKey: enrollment.key.toBytes(),
+        },
+        mspId: `${orgNameCapitalized}MSP`,
+        type: 'X.509',
+    };
+    await wallet.put(identityLabel, identity);
+    console.log(`Successfully enrolled ${identityLabel} user and imported it into the wallet`);
+
+  } catch (error) {
+    console.error(`Failed to enroll user: ${error}`);
+    process.exit(1);
+  }
 }
 
 async function invokeTransaction(args) {
-    try {
-        const response = await contract.submitTransaction('CreateMedsData', ...args);
-        console.log(`Transaction submitted successfully: ${response}`);
-    } catch (error) {
-        console.error('Error during the transaction process:', error);
-    }
+  const gateway = new Gateway();
+
+  try {
+    console.log('Starting the transaction process with arguments:', args);
+    const wallet = await Wallets.newFileSystemWallet('./wallet');
+    const orgName = identityLabel.split('@')[1];
+    const orgNameWithoutDomain = orgName.split('.')[0];
+    const connectionProfilePath = path.join(testNetworkRoot, 'organizations/peerOrganizations', orgName, `/connection-${orgNameWithoutDomain}.json`);
+    const connectionProfile = JSON.parse(fs.readFileSync(connectionProfilePath, 'utf8'));
+
+    const connectionOptions = {
+        identity: identityLabel,
+        wallet: wallet,
+        discovery: { enabled: true, asLocalhost: true }
+    };
+
+    await gateway.connect(connectionProfile, connectionOptions);
+
+    const network = await gateway.getNetwork('iotchannel1');
+    const contract = network.getContract('iot');
+
+    const response = await contract.submitTransaction('CreateMedsData', ...args);
+    console.log(`Transaction submitted successfully: ${response}`);
+
+  } catch (error) {
+    console.error('Error during the transaction process:', error);
+  } finally {
+    console.log('Disconnecting from the gateway...');
+    gateway.disconnect();
+  }
 }
 
 async function queryAllMedsData() {
-    try {
-        const result = await contract.evaluateTransaction('GetAllMedsData');
-        console.log(`Query result: ${result.toString()}`);
-        return result.toString();
-    } catch (error) {
-        console.error(`Error querying chaincode: ${error}`);
-        throw error;
-    }
+  const gateway = new Gateway();
+
+  try {
+    const wallet = await Wallets.newFileSystemWallet('./wallet');
+    const orgName = identityLabel.split('@')[1];
+    const orgNameWithoutDomain = orgName.split('.')[0];
+    const connectionProfilePath = path.join(testNetworkRoot, 'organizations/peerOrganizations', orgName, `/connection-${orgNameWithoutDomain}.json`);
+    const connectionProfile = JSON.parse(fs.readFileSync(connectionProfilePath, 'utf8'));
+
+    const connectionOptions = {
+        identity: identityLabel,
+        wallet: wallet,
+        discovery: { enabled: true, asLocalhost: true }
+    };
+
+    await gateway.connect(connectionProfile, connectionOptions);
+
+    const network = await gateway.getNetwork('iotchannel1');
+    const contract = network.getContract('iot');
+
+    // Query the chaincode
+    const result = await contract.evaluateTransaction('GetAllMedsData');
+    console.log(`Query result: ${result.toString()}`);
+
+    return result.toString(); // or parse it as JSON depending on the chaincode response format
+  } catch (error) {
+    console.error(`Error querying chaincode: ${error}`);
+    throw error;
+  } finally {
+    gateway.disconnect();
+  }
 }
