@@ -217,27 +217,31 @@ async function initializeApp() {
 }
 
 async function checkAndEnrollUser(identityLabel, connectionProfile, orgName, orgNameWithoutDomain) {
-    const wallet = await Wallets.newFileSystemWallet('./wallet');
-    let identity = await wallet.get(identityLabel);
-    if (!identity) {
-        console.log(`An identity for the user ${identityLabel} does not exist in the wallet`);
-        console.log('Enrolling user and importing identity into the wallet...');
+    try {
+        const wallet = await Wallets.newFileSystemWallet('./wallet');
+        let identity = await wallet.get(identityLabel);
+        if (!identity) {
+            console.log(`An identity for the user ${identityLabel} does not exist in the wallet`);
+            console.log('Enrolling user and importing identity into the wallet...');
 
-        const caInfo = connectionProfile.certificateAuthorities[`ca.${orgName}`];
-        const caTLSCACerts = caInfo.tlsCACerts.pem;
-        const ca = new FabricCAServices(caInfo.url, { trustedRoots: caTLSCACerts, verify: false }, caInfo.caName);
+            const caInfo = connectionProfile.certificateAuthorities[`ca.${orgName}`];
+            const caTLSCACerts = caInfo.tlsCACerts.pem;
+            const ca = new FabricCAServices(caInfo.url, { trustedRoots: caTLSCACerts, verify: false }, caInfo.caName);
 
-        const enrollment = await ca.enroll({ enrollmentID: 'user1', enrollmentSecret: 'user1pw' });
-        const x509Identity = {
-            credentials: {
-                certificate: enrollment.certificate,
-                privateKey: enrollment.key.toBytes(),
-            },
-            mspId: `${orgNameWithoutDomain}MSP`,
-            type: 'X.509',
-        };
-        await wallet.put(identityLabel, x509Identity);
-        console.log(`Successfully enrolled user "${identityLabel}" and imported it into the wallet`);
+            const enrollment = await ca.enroll({ enrollmentID: 'user1', enrollmentSecret: 'user1pw' });
+            const x509Identity = {
+                credentials: {
+                    certificate: enrollment.certificate,
+                    privateKey: enrollment.key.toBytes(),
+                },
+                mspId: `${orgNameWithoutDomain}MSP`,
+                type: 'X.509',
+            };
+            await wallet.put(identityLabel, x509Identity);
+            console.log(`Successfully enrolled user "${identityLabel}" and imported it into the wallet`);
+        }
+    } catch (error) {
+        console.error("Error in checkAndEnrollUser:", error);
     }
 }
 
