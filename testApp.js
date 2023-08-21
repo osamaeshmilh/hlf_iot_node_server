@@ -31,11 +31,11 @@ async function initializeApp() {
 
     const app = express();
     const port = 3000;
-    try {
-        await checkAndEnrollUser(identityLabel, connectionProfile, orgName, orgNameWithoutDomain);
-    } catch (error) {
-        console.error("Error initializing Hyperledger Fabric:", error);
-    }
+    // try {
+    //     await checkAndEnrollUser(identityLabel, connectionProfile, orgName, orgNameWithoutDomain);
+    // } catch (error) {
+    //     console.error("Error initializing Hyperledger Fabric:", error);
+    // }
 
     let contract = null;
 
