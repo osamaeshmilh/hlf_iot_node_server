@@ -21,6 +21,7 @@ async function initializeApp() {
 
     const client = mqtt.connect('mqtt://localhost', options);
 
+    const wallet = await Wallets.newFileSystemWallet('./wallet');
     const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
     const identityLabel = 'user1@org1.example.com';
     const orgName = identityLabel.split('@')[1];
@@ -28,6 +29,11 @@ async function initializeApp() {
     const connectionProfilePath = path.join(testNetworkRoot, 'organizations/peerOrganizations', orgName, `/connection-${orgNameWithoutDomain}.json`);
     const connectionProfile = JSON.parse(fs.readFileSync(connectionProfilePath, 'utf8'));
 
+    const connectionOptions = {
+        identity: identityLabel,
+        wallet: wallet,
+        discovery: { enabled: true, asLocalhost: true }
+    };
 
     const app = express();
     const port = 3000;
