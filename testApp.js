@@ -7,6 +7,9 @@ const { Wallets, Gateway } = require('fabric-network');
 const mqtt = require('mqtt');
 const express = require('express');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const workerpool = require('workerpool');
+
+const pool = workerpool.pool(__dirname + '/worker.js');
 
 async function initializeApp() {
     const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
