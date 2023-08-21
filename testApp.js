@@ -61,7 +61,7 @@ async function initializeApp() {
     });
 
     const latencyCsvWriter = createCsvWriter({
-        path: 'latency.csv',
+        path: 'transaction_latency.csv',
         header: [
             { id: 'timestamp', title: 'TIMESTAMP' },
             { id: 'humidity', title: 'HUMIDITY' },
@@ -98,7 +98,7 @@ async function initializeApp() {
                 startTime: startTime.toISOString(),
                 endTime: endTime.toISOString(),
                 latencyMs: latencyMs,
-                tps: transactionsThisSecond,  // Not truly "per second" here. Consider re-computation if needed.
+                tps: tps,  // Use the computed TPS
                 totalTransactions: totalTransactions
             };
 
@@ -123,8 +123,13 @@ async function initializeApp() {
 
     let totalTransactions = 0;
     let transactionsThisSecond = 0;
+    let tps = 0;  // New variable to store the computed TPS
+
 
     setInterval(() => {
+        // Compute the TPS for the current second
+        tps = transactionsThisSecond;  // Since the duration is 1 second, TPS is equal to transactionsThisSecond
+
         // Prepare the record for this second
         const record = {
             timestamp: new Date().toISOString(),
