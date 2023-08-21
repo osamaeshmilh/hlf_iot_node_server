@@ -67,21 +67,28 @@ async function initializeApp() {
 
         // Check if the received data is an array
         if (Array.isArray(dataList)) {
+            const transactionPromises = []; // Array to hold all the transaction promises
+
             for (let data of dataList) {
                 const args = [data.batchNo, data.warehouseNo, data.iotId, data.temperatureSensorId, data.humiditySensorId, data.timestamp, data.temperature.toString(), data.humidity.toString()];
                 console.log('Starting the transaction process with arguments:', args);
 
-                // Submit the transaction with the arguments
-                try {
-                    await invokeTransaction(args);
-
-                    // Increment the counters for tracking
-                    totalTransactions++;
-                    transactionsThisSecond++;
-                } catch (error) {
-                    console.error('Error during the transaction process:', error);
-                }
+                // Create the transaction and add it to the transactionPromises array
+                transactionPromises.push(invokeTransaction(args));
             }
+
+            // Wait for all transactions to complete
+            try {
+                await Promise.all(transactionPromises);
+
+                // Increment the counters for tracking based on the number of successful transactions
+                totalTransactions += dataList.length;
+                transactionsThisSecond += dataList.length;
+            } catch (error) {
+                // Some transactions might have failed. Handle the error or log it as appropriate.
+                console.error('Error during one or more transaction processes:', error);
+            }
+
         } else {
             console.error('Received data is not an array');
         }
