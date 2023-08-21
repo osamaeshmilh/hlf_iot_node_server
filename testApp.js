@@ -27,13 +27,13 @@ async function initializeApp() {
     const client = mqtt.connect('mqtt://localhost', options);
     const app = express();
     const port = 3000;
+
+    await checkAndEnrollUser();
     const connectionOptions = {
         identity: identityLabel,
         wallet: await Wallets.newFileSystemWallet('./wallet'),
         discovery: { enabled: true, asLocalhost: true }
     };
-
-    await checkAndEnrollUser();
 
     let contract = null;
 
