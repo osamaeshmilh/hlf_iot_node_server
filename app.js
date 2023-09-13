@@ -24,10 +24,12 @@ const options = {
   // ...tlsOptions, 
 };
 
-const client = mqtt.connect('mqtt://localhost', options); 
+const client = mqtt.connect('mqtt://localhost', options);
 
 const app = express();
 const port = 3000;
+
+const secret_key = "ztdoy8Ej58Iq33oPUJFfXS__AHmRG_N2u5IPgwoVJM4=";
 
 app.use(cors());
 
@@ -61,16 +63,19 @@ client.on('message', async function (topic, message) {
     // Parse the message into a JSON object
     let data = JSON.parse(message.toString());
 
-    // Extract the values from the JSON object
+    // Decrypt the message using the same secret key used for encryption
+    let decryptedData = decrypt_data(data, secret_key);
+
+    // Extract the values from the decrypted JSON object
     const args = [
-      data.batchNo,
-      data.warehouseNo,
-      data.iotId,
-      data.temperatureSensorId,
-      data.humiditySensorId,
-      data.timestamp,
-      data.temperature.toString(),
-      data.humidity.toString()
+        decryptedData.batchNo,
+        decryptedData.warehouseNo,
+        decryptedData.iotId,
+        decryptedData.temperatureSensorId,
+        decryptedData.humiditySensorId,
+        decryptedData.timestamp,
+        decryptedData.temperature.toString(),
+        decryptedData.humidity.toString()
     ];
 
     // Log the arguments
@@ -197,4 +202,16 @@ async function queryAllMedsData() {
   } finally {
     gateway.disconnect();
   }
+}
+
+// function to decrypt the data
+function decrypt_data(data, key) {
+    const cipher_suite = new Fernet(key);
+    try {
+        const decrypted_data = cipher_suite.decrypt(data);
+        return JSON.parse(decrypted_data);
+    } catch (error) {
+        console.error('Error decrypting data:', error);
+        return null;
+    }
 }

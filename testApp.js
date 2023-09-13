@@ -1,11 +1,9 @@
 'use strict';
 
-const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const { Wallets, Gateway } = require('fabric-network');
 const mqtt = require('mqtt');
-const express = require('express');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const osutils = require('os-utils');
 
@@ -23,8 +21,6 @@ async function initializeApp() {
     };
 
     const client = mqtt.connect('mqtt://localhost', options);
-    const app = express();
-    const port = 3000;
     const connectionOptions = {
         identity: identityLabel,
         wallet: await Wallets.newFileSystemWallet('./wallet'),
@@ -32,22 +28,6 @@ async function initializeApp() {
     };
 
     let contract = null;
-
-    app.use(cors());
-
-    app.get('/getAllMedsData', async (req, res) => {
-        try {
-            const result = await queryAllMedsData();
-            res.json(JSON.parse(result));
-        } catch (error) {
-            console.error(error);
-            res.status(500).send('An error occurred while querying the ledger');
-        }
-    });
-
-    app.listen(port, () => {
-        console.log(`Server running at http://localhost:${port}`);
-    });
 
     client.on('connect', function () {
         console.log('Connected to MQTT broker.');
@@ -207,46 +187,6 @@ async function initializeApp() {
         }
     }
 
-    async function queryAllMedsData() {
-        try {
-            const result = await contract.evaluateTransaction('GetAllMedsData');
-            console.log(`Query result: ${result.toString()}`);
-            return result.toString();
-        } catch (error) {
-            console.error(`Error querying chaincode: ${error}`);
-            throw error;
-        }
-    }
-
-}
-
-async function checkAndEnrollUser(identityLabel, connectionProfile, orgName, orgNameWithoutDomain) {
-    try {
-        const wallet = await Wallets.newFileSystemWallet('./wallet');
-        let identity = await wallet.get(identityLabel);
-        if (!identity) {
-            console.log(`An identity for the user ${identityLabel} does not exist in the wallet`);
-            console.log('Enrolling user and importing identity into the wallet...');
-
-            const caInfo = connectionProfile.certificateAuthorities[`ca.${orgName}`];
-            const caTLSCACerts = caInfo.tlsCACerts.pem;
-            const ca = new FabricCAServices(caInfo.url, { trustedRoots: caTLSCACerts, verify: false }, caInfo.caName);
-
-            const enrollment = await ca.enroll({ enrollmentID: 'user1', enrollmentSecret: 'user1pw' });
-            const x509Identity = {
-                credentials: {
-                    certificate: enrollment.certificate,
-                    privateKey: enrollment.key.toBytes(),
-                },
-                mspId: `${orgNameWithoutDomain}MSP`,
-                type: 'X.509',
-            };
-            await wallet.put(identityLabel, x509Identity);
-            console.log(`Successfully enrolled user "${identityLabel}" and imported it into the wallet`);
-        }
-    } catch (error) {
-        console.error("Error in checkAndEnrollUser:", error);
-    }
 }
 
 initializeApp().catch(error => {
