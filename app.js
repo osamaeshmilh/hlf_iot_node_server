@@ -220,11 +220,11 @@ async function queryAllMedsData() {
 
 // function to decrypt the data
 function decrypt_data(data, key) {
-    let secret = new Fernet.Secret(key);  // Initialize the key
+    let secret = new Fernet.Secret(key);
     try {
         let token = new Fernet.Token({secret: secret, token: data, ttl: 0});
-        const decrypted_data = token.decode();  // This returns a Buffer
-        return JSON.parse(decrypted_data.toString('utf8'));  // Convert Buffer to String and parse JSON
+        const decrypted_data = token.decode();
+        return (typeof decrypted_data === 'object') ? decrypted_data : JSON.parse(decrypted_data.toString('utf8'));
     } catch (error) {
         console.error('Error decrypting data:', error);
         return null;
