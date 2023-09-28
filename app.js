@@ -7,6 +7,7 @@ const FabricCAServices = require('fabric-ca-client');
 const { Wallets, Gateway } = require('fabric-network');
 const mqtt = require('mqtt');
 const express = require('express');
+const Fernet = require('fernet');
 
 const testNetworkRoot = path.resolve(require('os').homedir(), 'go/src/github.com/hyperledger2.5/fabric-samples/test-network');
 const identityLabel = 'user1@org1.example.com';
@@ -211,7 +212,7 @@ async function queryAllMedsData() {
 function decrypt_data(data, key) {
     const cipher_suite = new Fernet(key);
     try {
-        const decrypted_data = cipher_suite.decrypt(data);
+        const decrypted_data = cipher_suite.decryptMessage(data, key);
         return JSON.parse(decrypted_data);
     } catch (error) {
         console.error('Error decrypting data:', error);
