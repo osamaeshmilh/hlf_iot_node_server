@@ -65,10 +65,20 @@ client.on('message', async function (topic, message) {
     console.log("Received message:", message.toString());
     // Decrypt the message using the same secret key used for encryption
 
-    let decryptedData = decrypt_data(message.toString(), secret_key);
+    let decryptedData;
+    try {
+        decryptedData = decrypt_data(message.toString(), secret_key);
+    } catch (err) {
+        console.error("Error decrypting:", err);
+        return;
+    }
 
-    let data = JSON.parse(decryptedData);
+    if(!decryptedData) {
+        console.error("Data could not be decrypted");
+        return;
+    }
 
+    const data = JSON.parse(decryptedData);
 
     // Extract the values from the decrypted JSON object
     const args = [
