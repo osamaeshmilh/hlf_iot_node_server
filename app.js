@@ -226,9 +226,17 @@ function decrypt_data(data, key) {
     try {
         let token = new Fernet.Token({secret: secret, token: data, ttl: 0});
         const decrypted_data = token.decode();
-        return (typeof decrypted_data === 'object') ? decrypted_data : JSON.parse(decrypted_data.toString('utf8'));
+
+        if (typeof decrypted_data === 'object') {
+            return JSON.stringify(decrypted_data);  // Convert object to JSON string
+        } else {
+            // Ensure that the data is a JSON-formatted string before returning
+            JSON.parse(decrypted_data.toString('utf8'));
+            return decrypted_data.toString('utf8');
+        }
     } catch (error) {
         console.error('Error decrypting data:', error);
         return null;
     }
 }
+
