@@ -73,6 +73,8 @@ client.on('message', async function (topic, message) {
         return;
     }
 
+    console.log("Received message 2:", decryptedData.toString());
+
     if(!decryptedData) {
         console.error("Data could not be decrypted");
         return;
