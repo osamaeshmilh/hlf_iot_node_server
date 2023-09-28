@@ -61,6 +61,7 @@ client.on('connect', function () {
 
 client.on('message', async function (topic, message) {
     // Parse the message into a JSON object
+    console.log("Received message:", message.toString());
     let data = JSON.parse(message.toString());
 
     // Decrypt the message using the same secret key used for encryption
