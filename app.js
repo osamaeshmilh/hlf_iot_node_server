@@ -62,21 +62,23 @@ client.on('connect', function () {
 client.on('message', async function (topic, message) {
     // Parse the message into a JSON object
     console.log("Received message:", message.toString());
-    let data = JSON.parse(message.toString());
-
     // Decrypt the message using the same secret key used for encryption
-    let decryptedData = decrypt_data(data, secret_key);
+
+    let decryptedData = decrypt_data(message.toString(), secret_key);
+
+    let data = JSON.parse(decryptedData);
+
 
     // Extract the values from the decrypted JSON object
     const args = [
-        decryptedData.batchNo,
-        decryptedData.warehouseNo,
-        decryptedData.iotId,
-        decryptedData.temperatureSensorId,
-        decryptedData.humiditySensorId,
-        decryptedData.timestamp,
-        decryptedData.temperature.toString(),
-        decryptedData.humidity.toString()
+        data.batchNo,
+        data.warehouseNo,
+        data.iotId,
+        data.temperatureSensorId,
+        data.humiditySensorId,
+        data.timestamp,
+        data.temperature.toString(),
+        data.humidity.toString()
     ];
 
     // Log the arguments
